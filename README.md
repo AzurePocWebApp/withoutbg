@@ -4,6 +4,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![CI](https://github.com/withoutbg/withoutbg/actions/workflows/ci.yml/badge.svg)](https://github.com/withoutbg/withoutbg/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/withoutbg/withoutbg/branch/main/graph/badge.svg)](https://codecov.io/gh/withoutbg/withoutbg)
 
 Remove backgrounds from images instantly with AI. Choose between local processing (free) or cloud API (best quality).
 
