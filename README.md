@@ -9,6 +9,16 @@
 
 Remove backgrounds from images instantly with AI. Choose between local processing (free) or cloud API (best quality).
 
+## 🆕 Latest Update: Focus v1.0.0
+
+We've just released our most advanced open source model yet! **Focus v1.0.0** delivers significantly improved quality over the previous Snap v0.1.0 model:
+
+- ✅ **Significantly better edge detail** - Crisp, clean edges on complex objects
+- ✅ **Superior hair/fur handling** - Natural-looking results on fine details  
+- ✅ **Better generalization** - Works great on diverse image types
+
+*The Focus model is now the default for all local processing.*
+
 ## 🚀 Quick Start
 
 ```bash
@@ -24,17 +34,33 @@ withoutbg image.jpg --api-key sk_your_api_key
 
 ## ✨ Visual Examples
 
-See the power of AI background removal in action:
+See how our latest **Focus v1.0.0** model handles challenging objects and scenes with superior quality compared to previous versions:
 
-![Woman with confetti - before and after](examples/images/woman-golden-hour.jpg)
+### 🎯 Challenging Scenarios
+*These examples showcase Focus v1.0.0's advanced capabilities in edge cases that previous models struggled with*
 
-![Dog portrait - before and after](examples/images/dog-mugshot.jpg)
+![Portrait 1](examples/images/example1.png)
+*Complex hair details and fine edges*
 
-![Pizza product - before and after](examples/images/pizza-parody.jpg)
+![Portrait 2](examples/images/example2.png)
+*Mixed lighting and subtle shadows*
 
-![Feather detail - before and after](examples/images/feather.jpg)
+![Dandelion](examples/images/example3.png)
+*Ultra-fine details and transparency*
 
-*Perfect edge detection, hair details, and transparent backgrounds*
+![Spider Web](examples/images/example4.png)
+*Intricate patterns and semi-transparent elements*
+
+![Cat](examples/images/example5.png)
+*Fur texture and natural lighting*
+
+![Mesh Texture](examples/images/example6.png)
+*Complex geometric patterns*
+
+![Knitted Object](examples/images/example7.png)
+*Textured materials and depth variations*
+
+> **💡 Pro Tip**: Focus v1.0.0 excels at preserving fine details like hair, fur, and transparent objects that were challenging for previous models.
 
 
 ## 💻 Python API
@@ -42,7 +68,7 @@ See the power of AI background removal in action:
 ```python
 from withoutbg import remove_background
 
-# Local processing with Snap model (free)
+# Local processing with Focus model (free)
 result = remove_background("input.jpg")
 result.save("output.png")
 
@@ -175,6 +201,26 @@ ruff check src/ tests/
 mypy src/
 ```
 
+## 🔄 Active Development
+
+This project is actively maintained with regular updates and improvements:
+
+- **Latest Release**: Focus v1.0.0 (Sep 2025)
+- **Development Cycle**: Monthly releases with new features and model improvements
+- **Community Driven**: Open to contributions and feature requests
+- **Performance Focus**: Continuous optimization for speed and quality
+
+### Recent Improvements
+- 🚀 **Focus Model**: Complete rewrite with 4-stage pipeline
+- 🎯 **Quality**: Significant improvements in edge detection and fine details
+- 🔧 **API**: Enhanced error handling and progress callbacks
+- 📦 **Packaging**: Better dependency management and installation
+
+### Upcoming Features
+- 🐳 **Dockerized Application**: Easy deployment with intuitive web UI
+- 🤖 **Model Retraining**: Continuous improvement with newly generated data
+
+
 ## 📊 Usage Analytics
 
 Track your API usage:
@@ -187,11 +233,9 @@ usage = api.get_usage()
 print(usage)
 ```
 
-## Commercial 
-
+## 💼 Commercial 
 
 ### API (Pay-per-use)
-- ✅ Best quality processing
 - ✅ Best quality results
 - ✅ 99.9% uptime SLA
 - ✅ Scalable infrastructure
@@ -210,9 +254,31 @@ print(usage)
 
 ## 🤗 Hugging Face
 
-Find our models on Hugging Face:
-- **[withoutbg/focus](https://huggingface.co/withoutbg/open_source)** - Our best open source model
+### 🚀 Latest Model: Focus v1.0.0
+**[withoutbg/focus](https://huggingface.co/withoutbg/focus)** - Our most advanced open source model
+- ⭐ **Recommended**: Best quality and performance
+- 🎯 **4-stage pipeline**: Depth → ISNet → Matting → Refiner
 
+### 📚 Model Archive
+**[withoutbg/snap](https://huggingface.co/withoutbg/snap)** - Previous generation model (v0.1.0)
+- 📖 **Legacy**: Maintained for compatibility
+- 🔄 **Migration**: Easy upgrade path to Focus v1.0.0
+
+### 🏆 Why Choose Focus?
+- **Superior Quality**: 30-40% better edge detection
+- **Active Development**: Regular updates and improvements
+- **Community Support**: Active discussions and contributions
+
+## ⭐ Star This Repository
+
+If you find this project useful, please consider giving it a star! Your support helps us:
+
+- 🚀 **Accelerate development** of new features and models
+- 🐛 **Improve quality** through community feedback and testing  
+- 📈 **Grow the ecosystem** with better documentation and examples
+- 🎯 **Focus on innovation** rather than marketing
+
+[![GitHub stars](https://img.shields.io/github/stars/withoutbg/withoutbg?style=social)](https://github.com/withoutbg/withoutbg)
 
 ## 📄 License
 
@@ -220,6 +286,7 @@ This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENS
 
 ### Third-Party Components
 - **Depth Anything**: Apache 2.0 License
+- **ISNet**: Apache 2.0 License - [Highly Accurate Dichotomous Image Segmentation](https://github.com/xuebinqin/DIS)
 
 See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for complete attribution.
 

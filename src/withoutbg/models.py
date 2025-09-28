@@ -62,11 +62,11 @@ class OpenSourceModel:
 
     def _get_default_matting_model_path(self) -> Path:
         """Get path to Matting model from Hugging Face."""
-        return self._download_from_hf("focus_matting_0.1.0.onnx", "Focus matting model")
+        return self._download_from_hf("focus_matting_1.0.0.onnx", "Focus matting model")
 
     def _get_default_refiner_model_path(self) -> Path:
         """Get path to Refiner model from Hugging Face."""
-        return self._download_from_hf("focus_refiner_0.1.0.onnx", "Focus refiner model")
+        return self._download_from_hf("focus_refiner_1.0.0.onnx", "Focus refiner model")
 
     def _download_from_hf(self, filename: str, model_name: str) -> Path:
         """Download model from Hugging Face Hub with caching.
