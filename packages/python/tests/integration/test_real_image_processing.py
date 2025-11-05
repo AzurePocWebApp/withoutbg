@@ -7,7 +7,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from withoutbg.core import remove_background
+from withoutbg import WithoutBG
 from withoutbg.exceptions import ModelNotFoundError, WithoutBGError
 from withoutbg.models import OpenSourceModel
 
@@ -145,11 +145,12 @@ class TestRealImageProcessing:
             assert_alpha_iou(result, expected, min_iou=0.97)
 
     def test_core_api_with_real_model(self, test_images_dir):
-        """Test core API remove_background function with real processing."""
+        """Test core API WithoutBG class with real processing."""
         input_path = test_images_dir / "test-ice-cream.png"
 
-        # Test with default model (should use local Snap)
-        result = remove_background(input_path)
+        # Test with opensource model
+        model = WithoutBG.opensource()
+        result = model.remove_background(input_path)
         assert_alpha_channel_valid(result)
 
         # Result should preserve original dimensions

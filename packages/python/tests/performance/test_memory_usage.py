@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from withoutbg.core import remove_background, remove_background_batch
+from withoutbg import WithoutBG
 from withoutbg.models import OpenSourceModel
 
 
@@ -56,7 +56,8 @@ class TestMemoryUsage:
                 mock_refiner.return_value = mock_alpha
 
                 # Process image
-                result = remove_background(test_image)
+                model = WithoutBG.opensource()
+                result = model.remove_background(test_image)
 
                 # Check memory during processing
                 peak_memory = get_memory_usage()
@@ -97,7 +98,8 @@ class TestMemoryUsage:
                 mock_refiner.return_value = mock_alpha
 
                 # Process large image
-                result = remove_background(large_image)
+                model = WithoutBG.opensource()
+                result = model.remove_background(large_image)
 
                 peak_memory = get_memory_usage()
                 memory_increase = peak_memory - initial_memory
@@ -130,7 +132,7 @@ class TestMemoryUsage:
             for i in range(batch_size)
         ]
 
-        with patch("withoutbg.core.remove_background") as mock_remove_bg:
+        with patch("withoutbg.models.OpenSourceModel.remove_background") as mock_remove_bg:
             # Mock individual processing
             mock_results = []
             for image in test_images:
@@ -140,7 +142,8 @@ class TestMemoryUsage:
             mock_remove_bg.side_effect = mock_results
 
             # Process batch
-            results = remove_background_batch(test_images)
+            model = WithoutBG.opensource()
+            results = model.remove_background_batch(test_images)
 
             peak_memory = get_memory_usage()
             memory_increase = peak_memory - initial_memory
@@ -170,6 +173,7 @@ class TestMemoryUsage:
         memory_readings = [initial_memory]
 
         # Process multiple images sequentially
+        model = WithoutBG.opensource()
         for i in range(5):
             test_image = Image.new("RGB", (512, 384), color=(i * 50, i * 30, i * 20))
 
@@ -180,7 +184,7 @@ class TestMemoryUsage:
                     mock_refiner.return_value = mock_alpha
 
                     # Process image
-                    result = remove_background(test_image)
+                    result = model.remove_background(test_image)
 
                     # Clean up immediately
                     del result
@@ -264,6 +268,7 @@ class TestMemoryUsage:
         initial_memory = get_memory_usage()
 
         # Process the same image multiple times
+        model = WithoutBG.opensource()
         for _iteration in range(10):
             test_image = Image.new("RGB", (256, 256), color=(100, 150, 200))
 
@@ -274,7 +279,7 @@ class TestMemoryUsage:
                     mock_refiner.return_value = mock_alpha
 
                     # Process image
-                    result = remove_background(test_image)
+                    result = model.remove_background(test_image)
 
                     # Immediately clean up
                     del result
@@ -392,7 +397,8 @@ class TestMemoryUsage:
                         mock_refiner.return_value = mock_alpha
 
                         # Process file
-                        result = remove_background(tmp_file.name)
+                        model = WithoutBG.opensource()
+                        result = model.remove_background(tmp_file.name)
 
                         peak_memory = get_memory_usage()
                         memory_increase = peak_memory - initial_memory

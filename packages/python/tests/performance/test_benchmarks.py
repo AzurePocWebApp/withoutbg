@@ -8,7 +8,7 @@ import numpy as np
 import pytest
 from PIL import Image
 
-from withoutbg.core import remove_background, remove_background_batch
+from withoutbg import WithoutBG
 from withoutbg.models import OpenSourceModel
 
 
@@ -61,8 +61,9 @@ class TestProcessingBenchmarks:
                 mock_refiner.return_value = mock_alpha
 
                 # Measure processing time
+                model = WithoutBG.opensource()
                 start_time = time.time()
-                result = remove_background(image)
+                result = model.remove_background(image)
                 end_time = time.time()
 
                 processing_time = end_time - start_time
@@ -85,8 +86,9 @@ class TestProcessingBenchmarks:
                 mock_refiner.return_value = mock_alpha
 
                 # Measure processing time
+                model = WithoutBG.opensource()
                 start_time = time.time()
-                result = remove_background(image)
+                result = model.remove_background(image)
                 end_time = time.time()
 
                 processing_time = end_time - start_time
@@ -108,8 +110,9 @@ class TestProcessingBenchmarks:
                 mock_refiner.return_value = mock_alpha
 
                 # Measure processing time
+                model = WithoutBG.opensource()
                 start_time = time.time()
-                result = remove_background(image)
+                result = model.remove_background(image)
                 end_time = time.time()
 
                 processing_time = end_time - start_time
@@ -131,8 +134,9 @@ class TestProcessingBenchmarks:
                 mock_refiner.return_value = mock_alpha
 
                 # Measure processing time
+                model = WithoutBG.opensource()
                 start_time = time.time()
-                result = remove_background(image)
+                result = model.remove_background(image)
                 end_time = time.time()
 
                 processing_time = end_time - start_time
@@ -151,7 +155,7 @@ class TestProcessingBenchmarks:
             image = Image.new("RGB", (512, 384), color=(i * 25, i * 20, i * 15))
             test_images.append(image)
 
-        with patch("withoutbg.core.remove_background") as mock_remove_bg:
+        with patch("withoutbg.models.OpenSourceModel.remove_background") as mock_remove_bg:
             # Mock individual processing
             mock_results = []
             for image in test_images:
@@ -161,8 +165,9 @@ class TestProcessingBenchmarks:
             mock_remove_bg.side_effect = mock_results
 
             # Measure batch processing time
+            model = WithoutBG.opensource()
             start_time = time.time()
-            results = remove_background_batch(test_images)
+            results = model.remove_background_batch(test_images)
             end_time = time.time()
 
             total_time = end_time - start_time
@@ -238,6 +243,7 @@ class TestProcessingBenchmarks:
         ]
 
         processing_times = []
+        model = WithoutBG.opensource()
 
         for image in test_images:
             with patch("withoutbg.models.OpenSourceModel._matting_stage") as mock_matting:
@@ -248,7 +254,7 @@ class TestProcessingBenchmarks:
 
                     # Measure individual processing time
                     start_time = time.time()
-                    result = remove_background(image)
+                    result = model.remove_background(image)
                     end_time = time.time()
 
                     processing_times.append(end_time - start_time)
@@ -295,8 +301,9 @@ class TestProcessingBenchmarks:
             mock_post.side_effect = delayed_response
 
             # Measure API processing time
+            model = WithoutBG.api(api_key="sk_test_key")
             start_time = time.time()
-            result = remove_background(test_image, api_key="sk_test_key")
+            result = model.remove_background(test_image)
             end_time = time.time()
 
             api_time = end_time - start_time
@@ -329,7 +336,8 @@ class TestScalabilityBenchmarks:
                     mock_refiner.return_value = mock_alpha
 
                     # Process image
-                    result = remove_background(test_image)
+                    model = WithoutBG.opensource()
+                    result = model.remove_background(test_image)
 
                     # Verify processing completed
                     assert isinstance(result, Image.Image)
@@ -353,7 +361,7 @@ class TestScalabilityBenchmarks:
                 for i in range(batch_size)
             ]
 
-            with patch("withoutbg.core.remove_background") as mock_remove_bg:
+            with patch("withoutbg.models.OpenSourceModel.remove_background") as mock_remove_bg:
                 # Mock individual processing
                 mock_results = []
                 for image in test_images:
@@ -365,8 +373,9 @@ class TestScalabilityBenchmarks:
                 mock_remove_bg.side_effect = mock_results
 
                 # Measure batch processing time
+                model = WithoutBG.opensource()
                 start_time = time.time()
-                results = remove_background_batch(test_images)
+                results = model.remove_background_batch(test_images)
                 end_time = time.time()
 
                 batch_time = end_time - start_time
@@ -392,6 +401,7 @@ class TestScalabilityBenchmarks:
         processing_times = []
 
         # Process same image multiple times
+        model = WithoutBG.opensource()
         for _i in range(10):
             with patch("withoutbg.models.OpenSourceModel._matting_stage") as mock_matting:
                 with patch("withoutbg.models.OpenSourceModel._refiner_stage") as mock_refiner:
@@ -400,7 +410,7 @@ class TestScalabilityBenchmarks:
                     mock_refiner.return_value = mock_alpha
 
                     start_time = time.time()
-                    result = remove_background(test_image)
+                    result = model.remove_background(test_image)
                     end_time = time.time()
 
                     processing_times.append(end_time - start_time)
@@ -440,8 +450,9 @@ class TestRegressionBenchmarks:
                 mock_refiner.return_value = mock_alpha
 
                 # Measure processing time
+                model = WithoutBG.opensource()
                 start_time = time.time()
-                result = remove_background(test_image)
+                result = model.remove_background(test_image)
                 end_time = time.time()
 
                 processing_time = end_time - start_time

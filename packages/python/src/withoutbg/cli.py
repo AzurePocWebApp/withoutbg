@@ -8,7 +8,8 @@ import click
 from click._termui_impl import ProgressBar
 from PIL import Image
 
-from . import __version__, remove_background
+from . import __version__
+from .core import WithoutBG
 from .exceptions import WithoutBGError
 
 
@@ -93,21 +94,29 @@ def main(
             )
             sys.exit(1)
 
-        # Configure model
-        actual_model = "api" if using_api else "opensource"
-
         if verbose:
             mode = "API" if using_api else "Local Open Source model"
             click.echo(f"Using {mode} for processing...")
+            if not using_api:
+                click.echo("Loading models...")
+
+        # Initialize model once (key optimization!)
+        if using_api:
+            bg_model = WithoutBG.api(api_key)
+        else:
+            bg_model = WithoutBG.opensource()
+
+        if verbose and not using_api:
+            click.echo("✓ Models loaded successfully")
 
         # Process images
         if batch or input_path.is_dir():
             _process_batch(
-                input_path, output_dir, api_key, actual_model, format, quality, verbose
+                bg_model, input_path, output_dir, format, quality, verbose
             )
         else:
             _process_single(
-                input_path, output, api_key, actual_model, format, quality, verbose
+                bg_model, input_path, output, format, quality, verbose
             )
 
         if verbose:
@@ -128,10 +137,9 @@ def main(
 
 
 def _process_single(
+    model: WithoutBG,
     input_path: Path,
     output_path: Optional[Path],
-    api_key: Optional[str],
-    model: str,
     format: str,
     quality: int,
     verbose: bool,
@@ -157,10 +165,8 @@ def _process_single(
             if target_pos > bar.pos:
                 bar.update(target_pos - bar.pos)
         
-        result = remove_background(
-            input_path, 
-            api_key=api_key, 
-            model_name=model,
+        result = model.remove_background(
+            input_path,
             progress_callback=progress_callback
         )
 
@@ -188,10 +194,9 @@ def _process_single(
 
 
 def _process_batch(
+    model: WithoutBG,
     input_dir: Path,
     output_dir: Optional[Path],
-    api_key: Optional[str],
-    model: str,
     format: str,
     quality: int,
     verbose: bool,
@@ -227,17 +232,15 @@ def _process_batch(
         click.echo(f"Found {len(image_files)} images")
         click.echo(f"Output directory: {output_dir}")
 
-    # Process images
+    # Process images (reusing model for all images - key optimization!)
     with click.progressbar(image_files, label="Processing images") as bar:
         for image_file in bar:
             try:
                 # Generate output path
                 output_path = output_dir / f"{image_file.stem}-withoutbg.{format}"
 
-                # Remove background
-                result = remove_background(
-                    image_file, api_key=api_key, model_name=model
-                )
+                # Remove background (model is reused!)
+                result = model.remove_background(image_file)
 
                 # Save result
                 save_kwargs: dict[str, Any] = {}

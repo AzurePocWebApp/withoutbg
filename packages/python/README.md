@@ -20,15 +20,95 @@ pip install withoutbg
 ## Quick Start
 
 ```python
-from withoutbg import remove_background
+from withoutbg import WithoutBG
 
-# Remove background (local processing)
-result = remove_background("input.jpg")
+# Local processing with Open Source model
+model = WithoutBG.opensource()
+result = model.remove_background("input.jpg")
 result.save("output.png")
 
-# Use cloud API for best quality
-result = remove_background("input.jpg", api_key="sk_your_key")
+# Cloud processing with Studio API for best quality
+model = WithoutBG.api(api_key="sk_your_key")
+result = model.remove_background("input.jpg")
 result.save("output.png")
+```
+
+## API Usage
+
+### Single Image Processing
+
+```python
+from withoutbg import WithoutBG
+
+# Initialize model once
+model = WithoutBG.opensource()
+
+# Process image
+result = model.remove_background("photo.jpg")
+result.save("photo-withoutbg.png")
+
+# Process with progress callback
+def progress(value):
+    print(f"Progress: {value * 100:.1f}%")
+
+result = model.remove_background("photo.jpg", progress_callback=progress)
+```
+
+### Batch Processing
+
+```python
+from withoutbg import WithoutBG
+
+# Initialize model once (efficient!)
+model = WithoutBG.opensource()
+
+# Process multiple images - model is reused for all images
+images = ["photo1.jpg", "photo2.jpg", "photo3.jpg"]
+results = model.remove_background_batch(images, output_dir="results/")
+
+# Or process without saving
+results = model.remove_background_batch(images)
+for i, result in enumerate(results):
+    result.save(f"output_{i}.png")
+```
+
+### Using Studio API
+
+```python
+from withoutbg import WithoutBG
+
+# Initialize API client
+model = WithoutBG.api(api_key="sk_your_key")
+
+# Process images
+result = model.remove_background("input.jpg")
+
+# Batch processing with API
+results = model.remove_background_batch(
+    ["img1.jpg", "img2.jpg", "img3.jpg"],
+    output_dir="api_results/"
+)
+```
+
+### Advanced: Direct Model Access
+
+```python
+from withoutbg import OpenSourceModel, StudioAPI
+
+# For advanced users who need direct control
+opensource_model = OpenSourceModel()
+result = opensource_model.remove_background("input.jpg")
+
+# Or with custom model paths
+model = OpenSourceModel(
+    depth_model_path="/path/to/depth.onnx",
+    isnet_model_path="/path/to/isnet.onnx"
+)
+
+# Direct API access
+api = StudioAPI(api_key="sk_your_key")
+result = api.remove_background("input.jpg")
+usage = api.get_usage()
 ```
 
 ## CLI Usage
@@ -42,6 +122,9 @@ withoutbg photos/ --batch --output-dir results/
 
 # Use cloud API
 withoutbg photo.jpg --api-key sk_your_key
+
+# Specify output format
+withoutbg photo.jpg --format jpg --quality 90
 ```
 
 ## Features
@@ -51,6 +134,7 @@ withoutbg photo.jpg --api-key sk_your_key
 - 📦 Batch processing support
 - 🎯 Python API and CLI
 - 🔧 Flexible output formats (PNG, JPEG, WebP)
+- ⚡ Efficient model loading - load once, process many images
 
 ## Configuration
 
@@ -98,9 +182,3 @@ ruff check src/ tests/
 ## License
 
 Apache License 2.0 - see [LICENSE](../../LICENSE)
-
-
-
-
-
-

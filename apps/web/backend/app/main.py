@@ -2,8 +2,6 @@
 
 import io
 import os
-import tempfile
-from pathlib import Path
 from typing import Optional
 
 from fastapi import FastAPI, File, UploadFile, HTTPException, Form
@@ -13,7 +11,7 @@ from PIL import Image
 import uvicorn
 
 # Import withoutbg package (install via: uv sync or pip install -e ../../../packages/python)
-from withoutbg import remove_background, __version__
+from withoutbg import WithoutBG, __version__
 from withoutbg.exceptions import WithoutBGError
 from withoutbg.api import StudioAPI
 
@@ -32,6 +30,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Global model instance (initialized at startup, reused for all requests)
+_model: Optional[WithoutBG] = None
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Initialize models at startup for optimal performance."""
+    global _model
+    print("Loading Open Source models...")
+    _model = WithoutBG.opensource()
+    print("✓ Models loaded and ready for inference!")
+
 
 @app.get("/api/health")
 async def health_check():
@@ -39,7 +49,8 @@ async def health_check():
     return {
         "status": "healthy",
         "version": __version__,
-        "service": "withoutbg-api"
+        "service": "withoutbg-api",
+        "models_loaded": _model is not None
     }
 
 
@@ -71,12 +82,19 @@ async def remove_background_endpoint(
         contents = await file.read()
         input_image = Image.open(io.BytesIO(contents))
         
-        # Process image
-        result = remove_background(
-            input_image,
-            api_key=api_key,
-            model_name="api" if api_key else "opensource"
-        )
+        # Process image using appropriate model
+        if api_key:
+            # Use API for this specific request
+            api_model = WithoutBG.api(api_key)
+            result = api_model.remove_background(input_image)
+        else:
+            # Use pre-loaded opensource model (fast!)
+            if _model is None:
+                raise HTTPException(
+                    status_code=503,
+                    detail="Models not loaded. Server may still be starting up."
+                )
+            result = _model.remove_background(input_image)
         
         # Convert result to bytes
         output_buffer = io.BytesIO()
