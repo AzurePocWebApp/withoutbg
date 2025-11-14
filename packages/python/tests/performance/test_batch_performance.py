@@ -10,7 +10,7 @@ from unittest.mock import patch
 import pytest
 from PIL import Image
 
-from withoutbg.core import remove_background_batch
+from withoutbg.core import WithoutBG
 
 
 @pytest.fixture
@@ -58,10 +58,11 @@ class TestBatchPerformance:
         image_files = create_test_images(count=3, size=(256, 256))
 
         try:
-            with patch("withoutbg.core.remove_background", side_effect=mock_processing):
+            model = WithoutBG.opensource()
+            with patch.object(model.model, "remove_background", side_effect=mock_processing):
                 # Measure batch processing time
                 start_time = time.time()
-                results = remove_background_batch(image_files)
+                results = model.remove_background_batch(image_files)
                 end_time = time.time()
 
                 batch_time = end_time - start_time
@@ -93,10 +94,11 @@ class TestBatchPerformance:
         image_files = create_test_images(count=10, size=(512, 384))
 
         try:
-            with patch("withoutbg.core.remove_background", side_effect=mock_processing):
+            model = WithoutBG.opensource()
+            with patch.object(model.model, "remove_background", side_effect=mock_processing):
                 # Measure batch processing time
                 start_time = time.time()
-                results = remove_background_batch(image_files)
+                results = model.remove_background_batch(image_files)
                 end_time = time.time()
 
                 batch_time = end_time - start_time
@@ -122,10 +124,11 @@ class TestBatchPerformance:
         image_files = create_test_images(count=25, size=(400, 300))
 
         try:
-            with patch("withoutbg.core.remove_background", side_effect=mock_processing):
+            model = WithoutBG.opensource()
+            with patch.object(model.model, "remove_background", side_effect=mock_processing):
                 # Measure batch processing time
                 start_time = time.time()
-                results = remove_background_batch(image_files)
+                results = model.remove_background_batch(image_files)
                 end_time = time.time()
 
                 batch_time = end_time - start_time
@@ -156,12 +159,11 @@ class TestBatchPerformance:
             image_files = create_test_images(count=batch_size, size=(256, 256))
 
             try:
-                with patch(
-                    "withoutbg.core.remove_background", side_effect=mock_processing
-                ):
+                model = WithoutBG.opensource()
+                with patch.object(model.model, "remove_background", side_effect=mock_processing):
                     # Measure batch processing
                     start_time = time.time()
-                    results = remove_background_batch(image_files)
+                    results = model.remove_background_batch(image_files)
                     end_time = time.time()
 
                     batch_time = end_time - start_time
@@ -200,9 +202,10 @@ class TestBatchPerformance:
             # Force garbage collection
             gc.collect()
 
-            with patch("withoutbg.core.remove_background", side_effect=mock_processing):
+            model = WithoutBG.opensource()
+            with patch.object(model.model, "remove_background", side_effect=mock_processing):
                 # Process batch and monitor memory
-                results = remove_background_batch(image_files)
+                results = model.remove_background_batch(image_files)
 
                 # Verify processing completed
                 assert len(results) == len(image_files)
@@ -226,12 +229,11 @@ class TestBatchPerformance:
 
         with tempfile.TemporaryDirectory() as output_dir:
             try:
-                with patch(
-                    "withoutbg.core.remove_background", side_effect=mock_processing
-                ):
+                model = WithoutBG.opensource()
+                with patch.object(model.model, "remove_background", side_effect=mock_processing):
                     # Measure batch processing with output directory
                     start_time = time.time()
-                    results = remove_background_batch(
+                    results = model.remove_background_batch(
                         image_files, output_dir=output_dir
                     )
                     end_time = time.time()
@@ -270,15 +272,17 @@ class TestBatchPerformance:
             return Image.new("RGBA", img.size, color=(100, 150, 200, 128))
 
         try:
-            with patch(
-                "withoutbg.core.remove_background",
+            model = WithoutBG.opensource()
+            with patch.object(
+                model.model,
+                "remove_background",
                 side_effect=mock_processing_with_errors,
             ):
                 # Measure batch processing with errors
                 start_time = time.time()
 
                 try:
-                    results = remove_background_batch(image_files)
+                    results = model.remove_background_batch(image_files)
                     # If no exception is raised, check results
                     assert len(results) <= len(image_files)  # Some may have failed
                 except Exception:
@@ -313,10 +317,11 @@ class TestBatchPerformance:
                 image_files.append(tmp_file.name)
 
         try:
-            with patch("withoutbg.core.remove_background", side_effect=mock_processing):
+            model = WithoutBG.opensource()
+            with patch.object(model.model, "remove_background", side_effect=mock_processing):
                 # Measure batch processing with mixed sizes
                 start_time = time.time()
-                results = remove_background_batch(image_files)
+                results = model.remove_background_batch(image_files)
                 end_time = time.time()
 
                 batch_time = end_time - start_time
@@ -347,14 +352,15 @@ class TestBatchPerformance:
         image_files = create_test_images(count=5, size=(300, 300))
 
         try:
-            with patch("withoutbg.core.remove_background", side_effect=mock_processing):
+            model = WithoutBG.opensource()
+            with patch.object(model.model, "remove_background", side_effect=mock_processing):
                 # Process the same batch multiple times
                 all_results = []
                 processing_times = []
 
                 for _run in range(3):
                     start_time = time.time()
-                    results = remove_background_batch(image_files)
+                    results = model.remove_background_batch(image_files)
                     end_time = time.time()
 
                     processing_times.append(end_time - start_time)
@@ -389,10 +395,11 @@ class TestBatchPerformance:
             for i in range(8)
         ]
 
-        with patch("withoutbg.core.remove_background", side_effect=mock_processing):
+        model = WithoutBG.opensource()
+        with patch.object(model.model, "remove_background", side_effect=mock_processing):
             # Measure batch processing with PIL images
             start_time = time.time()
-            results = remove_background_batch(test_images)
+            results = model.remove_background_batch(test_images)
             end_time = time.time()
 
             batch_time = end_time - start_time
@@ -419,14 +426,15 @@ class TestBatchPerformance:
         all_batches = [batch1, batch2, batch3]
 
         try:
-            with patch("withoutbg.core.remove_background", side_effect=mock_processing):
+            model = WithoutBG.opensource()
+            with patch.object(model.model, "remove_background", side_effect=mock_processing):
                 # Process batches sequentially (simulating concurrent workload)
                 total_start_time = time.time()
                 all_results = []
 
                 for i, batch in enumerate(all_batches):
                     start_time = time.time()
-                    results = remove_background_batch(batch)
+                    results = model.remove_background_batch(batch)
                     end_time = time.time()
 
                     all_results.append(results)

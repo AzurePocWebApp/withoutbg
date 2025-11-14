@@ -173,32 +173,33 @@ class TestCLIIntegration:
 
         return images_dir
 
-    @patch("src.withoutbg.cli.remove_background")
+    @patch("src.withoutbg.cli.WithoutBG")
     def test_single_image_processing_open_source_model(
-        self, mock_remove_bg, test_image_file
+        self, mock_withoutbg_class, test_image_file
     ):
         """Test processing single image with local opensource model."""
         # Mock successful processing
         result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = result_image
 
         result = self.runner.invoke(main, [str(test_image_file)])
 
         assert result.exit_code == 0
-        mock_remove_bg.assert_called_once()
-        call_args = mock_remove_bg.call_args
+        mock_withoutbg_class.opensource.assert_called_once()
+        mock_instance.remove_background.assert_called_once()
+        call_args = mock_instance.remove_background.call_args
         assert call_args[0][0] == test_image_file
-        assert call_args[1]["api_key"] is None
-        assert call_args[1]["model_name"] == "opensource"
         assert "progress_callback" in call_args[1]
 
-    @patch("src.withoutbg.cli.remove_background")
+    @patch("src.withoutbg.cli.WithoutBG")
     def test_single_image_processing_with_output_path(
-        self, mock_remove_bg, test_image_file, temp_dir
+        self, mock_withoutbg_class, test_image_file, temp_dir
     ):
         """Test processing with custom output path."""
         result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = result_image
 
         output_path = temp_dir / "custom_output.png"
         result = self.runner.invoke(
@@ -208,49 +209,50 @@ class TestCLIIntegration:
         assert result.exit_code == 0
         assert output_path.exists()
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_single_image_processing_pro_api(self, mock_remove_bg, test_image_file):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_single_image_processing_pro_api(self, mock_withoutbg_class, test_image_file):
         """Test processing with withoutBG Pro API model."""
         result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.api.return_value
+        mock_instance.remove_background.return_value = result_image
 
         result = self.runner.invoke(
             main, [str(test_image_file), "--model", "api", "--api-key", "test_key"]
         )
 
         assert result.exit_code == 0
-        mock_remove_bg.assert_called_once()
-        call_args = mock_remove_bg.call_args
+        mock_withoutbg_class.api.assert_called_once_with("test_key")
+        mock_instance.remove_background.assert_called_once()
+        call_args = mock_instance.remove_background.call_args
         assert call_args[0][0] == test_image_file
-        assert call_args[1]["api_key"] == "test_key"
-        assert call_args[1]["model_name"] == "api"
         assert "progress_callback" in call_args[1]
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_use_api_flag_forces_pro_model(self, mock_remove_bg, test_image_file):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_use_api_flag_forces_pro_model(self, mock_withoutbg_class, test_image_file):
         """Test that --use-api flag forces withoutBG Pro model."""
         result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.api.return_value
+        mock_instance.remove_background.return_value = result_image
 
         result = self.runner.invoke(
             main, [str(test_image_file), "--use-api", "--api-key", "test_key"]
         )
 
         assert result.exit_code == 0
-        mock_remove_bg.assert_called_once()
-        call_args = mock_remove_bg.call_args
+        mock_withoutbg_class.api.assert_called_once_with("test_key")
+        mock_instance.remove_background.assert_called_once()
+        call_args = mock_instance.remove_background.call_args
         assert call_args[0][0] == test_image_file
-        assert call_args[1]["api_key"] == "test_key"
-        assert call_args[1]["model_name"] == "api"
         assert "progress_callback" in call_args[1]
 
-    @patch("src.withoutbg.cli.remove_background")
+    @patch("src.withoutbg.cli.WithoutBG")
     def test_batch_processing_directory(
-        self, mock_remove_bg, test_images_directory, temp_dir
+        self, mock_withoutbg_class, test_images_directory, temp_dir
     ):
         """Test batch processing of directory."""
         result_image = Image.new("RGBA", (200, 200), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = result_image
 
         output_dir = temp_dir / "output"
         result = self.runner.invoke(
@@ -259,16 +261,17 @@ class TestCLIIntegration:
         )
 
         assert result.exit_code == 0
-        assert mock_remove_bg.call_count == 3  # 3 images in directory
+        assert mock_instance.remove_background.call_count == 3  # 3 images in directory
         assert output_dir.exists()
 
-    @patch("src.withoutbg.cli.remove_background")
+    @patch("src.withoutbg.cli.WithoutBG")
     def test_batch_processing_creates_default_output_dir(
-        self, mock_remove_bg, test_images_directory
+        self, mock_withoutbg_class, test_images_directory
     ):
         """Test batch processing creates default output directory."""
         result_image = Image.new("RGBA", (200, 200), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = result_image
 
         result = self.runner.invoke(main, [str(test_images_directory), "--batch"])
 
@@ -276,11 +279,12 @@ class TestCLIIntegration:
         default_output_dir = test_images_directory / "withoutbg-results"
         assert default_output_dir.exists()
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_output_format_options(self, mock_remove_bg, test_image_file, temp_dir):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_output_format_options(self, mock_withoutbg_class, test_image_file, temp_dir):
         """Test different output format options."""
         result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = result_image
 
         formats = ["png", "jpg", "webp"]
         for fmt in formats:
@@ -303,11 +307,12 @@ class TestCLIIntegration:
                 saved_image.format == expected_format
             ), f"Expected {expected_format}, got {saved_image.format}"
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_jpeg_quality_setting(self, mock_remove_bg, test_image_file, temp_dir):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_jpeg_quality_setting(self, mock_withoutbg_class, test_image_file, temp_dir):
         """Test JPEG quality setting."""
         result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = result_image
 
         output_path = temp_dir / "output.jpg"
         result = self.runner.invoke(
@@ -328,11 +333,12 @@ class TestCLIIntegration:
         ), f"JPEG quality test failed with output: {result.output}"
         assert output_path.exists()
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_verbose_output(self, mock_remove_bg, test_image_file):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_verbose_output(self, mock_withoutbg_class, test_image_file):
         """Test verbose output mode."""
         result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = result_image
 
         result = self.runner.invoke(main, [str(test_image_file), "--verbose"])
 
@@ -341,11 +347,12 @@ class TestCLIIntegration:
         assert "Processing:" in result.output
         assert "✅ Processing complete!" in result.output
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_verbose_output_with_api(self, mock_remove_bg, test_image_file):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_verbose_output_with_api(self, mock_withoutbg_class, test_image_file):
         """Test verbose output with API processing."""
         result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-        mock_remove_bg.return_value = result_image
+        mock_instance = mock_withoutbg_class.api.return_value
+        mock_instance.remove_background.return_value = result_image
 
         result = self.runner.invoke(
             main,
@@ -353,13 +360,14 @@ class TestCLIIntegration:
         )
 
         assert result.exit_code == 0
-        assert "Using API for processing" in result.output
+        assert "Using withoutBG Pro for processing" in result.output
 
     def test_output_filename_generation(self, test_image_file, temp_dir):
         """Test automatic output filename generation."""
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
             result_image = Image.new("RGBA", (256, 256), color=(255, 0, 0, 128))
-            mock_remove_bg.return_value = result_image
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.return_value = result_image
 
             result = self.runner.invoke(main, [str(test_image_file)])
 
@@ -393,8 +401,9 @@ class TestCLIErrorHandling:
         image_path = temp_dir / "test.jpg"
         Image.new("RGB", (100, 100)).save(image_path)
 
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
-            mock_remove_bg.side_effect = WithoutBGError("Test error")
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.side_effect = WithoutBGError("Test error")
 
             result = self.runner.invoke(main, [str(image_path)])
 
@@ -406,8 +415,9 @@ class TestCLIErrorHandling:
         image_path = temp_dir / "test.jpg"
         Image.new("RGB", (100, 100)).save(image_path)
 
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
-            mock_remove_bg.side_effect = KeyboardInterrupt()
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.side_effect = KeyboardInterrupt()
 
             result = self.runner.invoke(main, [str(image_path)])
 
@@ -419,8 +429,9 @@ class TestCLIErrorHandling:
         image_path = temp_dir / "test.jpg"
         Image.new("RGB", (100, 100)).save(image_path)
 
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
-            mock_remove_bg.side_effect = ValueError("Unexpected error")
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.side_effect = ValueError("Unexpected error")
 
             result = self.runner.invoke(main, [str(image_path)])
 
@@ -437,8 +448,8 @@ class TestCLIErrorHandling:
         assert result.exit_code == 1
         assert "No image files found" in result.output
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_batch_processing_partial_failures(self, mock_remove_bg, temp_dir):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_batch_processing_partial_failures(self, mock_withoutbg_class, temp_dir):
         """Test batch processing continues on individual failures."""
         # Create test images
         images_dir = temp_dir / "images"
@@ -454,7 +465,8 @@ class TestCLIErrorHandling:
                 raise ValueError("Processing failed")
             return Image.new("RGBA", (100, 100))
 
-        mock_remove_bg.side_effect = side_effect
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.side_effect = side_effect
 
         result = self.runner.invoke(main, [str(images_dir), "--batch", "--verbose"])
 
@@ -466,8 +478,9 @@ class TestCLIErrorHandling:
         image_path = temp_dir / "test.jpg"
         Image.new("RGB", (100, 100)).save(image_path)
 
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
-            mock_remove_bg.return_value = Image.new("RGBA", (100, 100))
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.return_value = Image.new("RGBA", (100, 100))
 
             # Mock save to raise permission error
             with patch.object(
@@ -493,22 +506,24 @@ class TestCLIEdgeCases:
         image_path = temp_dir / unicode_filename
         Image.new("RGB", (100, 100)).save(image_path)
 
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
-            mock_remove_bg.return_value = Image.new("RGBA", (100, 100))
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.return_value = Image.new("RGBA", (100, 100))
 
             result = self.runner.invoke(main, [str(image_path)])
 
             assert result.exit_code == 0
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_large_image_processing(self, mock_remove_bg, temp_dir):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_large_image_processing(self, mock_withoutbg_class, temp_dir):
         """Test processing of large images."""
         # Create large test image
         large_image = Image.new("RGB", (4000, 3000), color=(255, 0, 0))
         image_path = temp_dir / "large_image.jpg"
         large_image.save(image_path)
 
-        mock_remove_bg.return_value = Image.new("RGBA", (4000, 3000))
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = Image.new("RGBA", (4000, 3000))
 
         result = self.runner.invoke(main, [str(image_path)])
 
@@ -521,24 +536,26 @@ class TestCLIEdgeCases:
         with open(corrupted_path, "wb") as f:
             f.write(b"This is not a valid image file")
 
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
-            mock_remove_bg.side_effect = Exception("Cannot identify image file")
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.side_effect = Exception("Cannot identify image file")
 
             result = self.runner.invoke(main, [str(corrupted_path)])
 
             assert result.exit_code == 1
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_various_image_formats(self, mock_remove_bg, temp_dir):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_various_image_formats(self, mock_withoutbg_class, temp_dir):
         """Test processing of various input image formats."""
         formats = [("test.jpg", "RGB"), ("test.png", "RGBA"), ("test.bmp", "RGB")]
+
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = Image.new("RGBA", (100, 100))
 
         for filename, mode in formats:
             image = Image.new(mode, (100, 100))
             image_path = temp_dir / filename
             image.save(image_path)
-
-            mock_remove_bg.return_value = Image.new("RGBA", (100, 100))
 
             result = self.runner.invoke(main, [str(image_path)])
             assert result.exit_code == 0
@@ -548,21 +565,23 @@ class TestCLIEdgeCases:
         image_path = temp_dir / "test.jpg"
         Image.new("RGB", (100, 100)).save(image_path)
 
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
-            mock_remove_bg.return_value = Image.new("RGBA", (100, 100))
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.return_value = Image.new("RGBA", (100, 100))
 
             result = self.runner.invoke(main, [str(image_path), "--batch"])
 
             assert result.exit_code == 0
 
-    @patch("src.withoutbg.cli.remove_background")
-    def test_rgba_to_jpg_conversion(self, mock_remove_bg, temp_dir):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_rgba_to_jpg_conversion(self, mock_withoutbg_class, temp_dir):
         """Test conversion from RGBA to JPG format."""
         image_path = temp_dir / "test.png"
         Image.new("RGBA", (100, 100), color=(255, 0, 0, 128)).save(image_path)
 
         # Mock returns RGBA image
-        mock_remove_bg.return_value = Image.new(
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = Image.new(
             "RGBA", (100, 100), color=(255, 0, 0, 128)
         )
 
@@ -586,8 +605,9 @@ class TestCLIEdgeCases:
         images_dir.mkdir()
         Image.new("RGB", (100, 100)).save(images_dir / "test.jpg")
 
-        with patch("src.withoutbg.cli.remove_background") as mock_remove_bg:
-            mock_remove_bg.return_value = Image.new("RGBA", (100, 100))
+        with patch("src.withoutbg.cli.WithoutBG") as mock_withoutbg_class:
+            mock_instance = mock_withoutbg_class.opensource.return_value
+            mock_instance.remove_background.return_value = Image.new("RGBA", (100, 100))
 
             result = self.runner.invoke(main, [str(images_dir)])
 
@@ -681,8 +701,8 @@ class TestCLIPerformance:
     """Performance-related tests for CLI operations."""
 
     @pytest.mark.performance
-    @patch("src.withoutbg.cli.remove_background")
-    def test_batch_processing_performance(self, mock_remove_bg, temp_dir):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_batch_processing_performance(self, mock_withoutbg_class, temp_dir):
         """Test performance of batch processing multiple images."""
         import time
 
@@ -695,7 +715,8 @@ class TestCLIPerformance:
             image = Image.new("RGB", (512, 512))
             image.save(images_dir / f"image_{i:03d}.jpg")
 
-        mock_remove_bg.return_value = Image.new("RGBA", (512, 512))
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = Image.new("RGBA", (512, 512))
 
         runner = CliRunner()
         start_time = time.time()
@@ -706,7 +727,7 @@ class TestCLIPerformance:
         processing_time = end_time - start_time
 
         assert result.exit_code == 0
-        assert mock_remove_bg.call_count == num_images
+        assert mock_instance.remove_background.call_count == num_images
 
         # Performance assertion (should process 10 images in reasonable time)
         # This is quite lenient since we're mocking the actual processing
@@ -715,15 +736,16 @@ class TestCLIPerformance:
         ), f"Batch processing took {processing_time:.2f}s, expected < 10s"
 
     @pytest.mark.performance
-    @patch("src.withoutbg.cli.remove_background")
-    def test_cli_startup_performance(self, mock_remove_bg, temp_dir):
+    @patch("src.withoutbg.cli.WithoutBG")
+    def test_cli_startup_performance(self, mock_withoutbg_class, temp_dir):
         """Test CLI startup and initialization performance."""
         import time
 
         image_path = temp_dir / "test.jpg"
         Image.new("RGB", (100, 100)).save(image_path)
 
-        mock_remove_bg.return_value = Image.new("RGBA", (100, 100))
+        mock_instance = mock_withoutbg_class.opensource.return_value
+        mock_instance.remove_background.return_value = Image.new("RGBA", (100, 100))
 
         runner = CliRunner()
         start_time = time.time()
