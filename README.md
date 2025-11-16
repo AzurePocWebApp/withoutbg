@@ -7,9 +7,10 @@
 
 Remove backgrounds from images instantly with AI. Choose between local processing (free) or withoutBG Pro (best quality).
 
-![Python Package Intro](/images/python-package-intro.png)
 
 ## ⚡ Try It in 30 Seconds
+
+![Python Package Intro](/images/python-package-intro.png)
 
 ```bash
 # Install and run in one go
@@ -40,7 +41,6 @@ Need fastest processing? → withoutBG Pro (optimized infrastructure)
 
 **[View Complete Dockerized Web App Documentation →](https://withoutbg.com/documentation/integrations/dockerized-web-app?utm_source=github&utm_medium=withoutbg-readme&utm_campaign=main-readme)**
 
-![Docker App Intro](/images/docker-app-intro.png)
 
 ![Web Applicacation in Docker](/images/dockerized-app.png)
 ```bash
