@@ -386,7 +386,7 @@ Apache License 2.0 - see [LICENSE](LICENSE)
 - **ISNet**: Apache 2.0 License
 
 ### Acknowledgements
-- **segmentation-models-pytorch**: MIT License (used to train matting/refiner models)
+- **[segmentation-models-pytorch](https://github.com/qubvel-org/segmentation_models.pytorch)**: MIT License (used to train matting/refiner models)
 
 See [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md) for complete attribution.
 
