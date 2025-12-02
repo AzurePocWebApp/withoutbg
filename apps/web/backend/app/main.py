@@ -30,6 +30,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],  # Expose header for blob downloads
 )
 
 # Static files directory (frontend build)
@@ -127,7 +128,7 @@ async def remove_background_endpoint(
             content=output_buffer.getvalue(),
             media_type=media_type,
             headers={
-                "Content-Disposition": f"attachment; filename=withoutbg.{format}"
+                "Content-Disposition": f"inline; filename=withoutbg.{format}"
             }
         )
         
