@@ -33,13 +33,26 @@ The system automatically:
 
 ---
 
-## Manual Release Setup (This Guide)
+## Manual Release Workflow (This Guide)
 
-The GitHub Actions workflow can be triggered manually to:
-- Downloads ONNX model files from S3
-- Builds multi-platform Docker images (AMD64 + ARM64)
-- Tags with semantic versioning
-- Pushes to Docker Hub as `withoutbg/app`
+The manual workflow (`docker-release.yml`) allows you to:
+- **Trigger releases on-demand** via GitHub Actions UI
+- **Choose version bump type**: auto, major, minor, patch, or none
+- **Test builds** with dry run mode (no push)
+- **Downloads ONNX model files** from S3
+- **Builds multi-platform Docker images** (AMD64 + ARM64)
+- **Auto-updates version files** and creates git tags
+- **Pushes to Docker Hub** as `withoutbg/app`
+
+### Version Bump Options
+
+| Option | Behavior | Example |
+|--------|----------|---------|
+| `auto` | Analyzes commits since last tag | feat: → 1.1.0, fix: → 1.0.1 |
+| `major` | Breaking changes | 1.2.3 → 2.0.0 |
+| `minor` | New features | 1.2.3 → 1.3.0 |
+| `patch` | Bug fixes | 1.2.3 → 1.2.4 |
+| `none` | No version bump | Uses current tag version |
 
 ## Prerequisites
 
@@ -178,41 +191,67 @@ aws s3 ls s3://withoutbg-focus/ --region eu-central-1
 
 ## Usage
 
-### Releasing a New Version
+### Manual Release Options
 
-1. **Update version** in `apps/web/backend/pyproject.toml`:
-   ```toml
-   version = "1.2.3"
-   ```
+#### Option 1: Auto Version Bump (Recommended)
 
-2. **Commit and push** the version change:
-   ```bash
-   git add apps/web/backend/pyproject.toml
-   git commit -m "chore: bump version to 1.2.3"
-   git push
-   ```
+Analyzes commits since last release and auto-detects version bump:
 
-3. **Trigger the workflow**:
+1. **Trigger the workflow**:
    - Go to [GitHub Actions](https://github.com/YOUR_ORG/withoutbg/actions)
-   - Select **"Docker Release"** workflow
+   - Select **"Docker Release (Manual)"** workflow
    - Click **"Run workflow"**
-   - Branch: `main`
-   - Dry run: `false` (uncheck for actual release)
+   - **Version bump type**: `auto`
+   - **Dry run**: `false`
    - Click **"Run workflow"**
+
+2. **What happens**:
+   - Checks commits since last tag
+   - `feat:` commits → MINOR bump (1.0.0 → 1.1.0)
+   - `fix:` commits → PATCH bump (1.0.0 → 1.0.1)
+   - `feat!:` commits → MAJOR bump (1.0.0 → 2.0.0)
+   - Updates version files, creates tag, builds & pushes Docker images
+
+#### Option 2: Specific Version Bump
+
+Force a specific version bump type:
+
+1. Go to GitHub Actions → "Docker Release (Manual)" workflow
+2. Click "Run workflow"
+3. Choose **Version bump type**:
+   - `major` - Breaking changes (1.2.3 → 2.0.0)
+   - `minor` - New features (1.2.3 → 1.3.0)
+   - `patch` - Bug fixes (1.2.3 → 1.2.4)
+4. Click "Run workflow"
+
+#### Option 3: Rebuild Current Version
+
+Rebuild Docker images without changing version:
+
+1. Go to GitHub Actions → "Docker Release (Manual)" workflow
+2. Click "Run workflow"
+3. **Version bump type**: `none`
+4. Click "Run workflow"
+
+This rebuilds and pushes the current tagged version.
 
 ### Testing Before Release (Dry Run)
 
 To test the build without pushing to Docker Hub:
 
-1. Go to GitHub Actions → "Docker Release" workflow
+1. Go to GitHub Actions → "Docker Release (Manual)" workflow
 2. Click "Run workflow"
-3. Check **"Dry run"** option
-4. Click "Run workflow"
+3. **Version bump type**: Choose any
+4. **Dry run**: `true` ✓
+5. Click "Run workflow"
 
 This will:
+- Calculate what version would be released
 - Download models from S3
 - Build the Docker image for both platforms
 - Test the image locally
+- **NOT** update version files
+- **NOT** create git tags
 - **NOT** push to Docker Hub
 
 ## What the Workflow Does

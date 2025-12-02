@@ -1,8 +1,19 @@
-name: Docker Release
+name: Docker Release (Manual)
 
 on:
   workflow_dispatch:
     inputs:
+      version_bump:
+        description: 'Version bump type'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - major
+          - minor
+          - patch
+          - none
       dry_run:
         description: 'Dry run (build only, do not push)'
         required: false
@@ -19,25 +30,90 @@ jobs:
   docker-release:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       
-      - name: Extract version from pyproject.toml
+      - name: Setup Node.js (for semver calculation)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Calculate next version
         id: version
         run: |
-          VERSION=$(grep -m 1 'version = ' apps/web/backend/pyproject.toml | cut -d'"' -f2)
-          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "📦 Version: $VERSION"
+          # Get the latest git tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          CURRENT_VERSION=${LATEST_TAG#v}
+          echo "📌 Current version: $CURRENT_VERSION"
           
-          # Extract semantic version components
-          MAJOR=$(echo $VERSION | cut -d. -f1)
-          MINOR=$(echo $VERSION | cut -d. -f1-2)
-          echo "MAJOR=$MAJOR" >> $GITHUB_OUTPUT
-          echo "MINOR=$MINOR" >> $GITHUB_OUTPUT
-          echo "🏷️  Tags: $VERSION, $MINOR, $MAJOR, latest"
+          # Parse version components
+          MAJOR=$(echo $CURRENT_VERSION | cut -d. -f1)
+          MINOR=$(echo $CURRENT_VERSION | cut -d. -f2)
+          PATCH=$(echo $CURRENT_VERSION | cut -d. -f3)
+          
+          # Determine next version based on input
+          BUMP_TYPE="${{ inputs.version_bump }}"
+          
+          if [ "$BUMP_TYPE" = "none" ]; then
+            NEW_VERSION="$CURRENT_VERSION"
+            echo "ℹ️  Using current version (no bump)"
+          elif [ "$BUMP_TYPE" = "major" ]; then
+            MAJOR=$((MAJOR + 1))
+            MINOR=0
+            PATCH=0
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+            echo "⬆️  MAJOR bump: $CURRENT_VERSION → $NEW_VERSION"
+          elif [ "$BUMP_TYPE" = "minor" ]; then
+            MINOR=$((MINOR + 1))
+            PATCH=0
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+            echo "⬆️  MINOR bump: $CURRENT_VERSION → $NEW_VERSION"
+          elif [ "$BUMP_TYPE" = "patch" ]; then
+            PATCH=$((PATCH + 1))
+            NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+            echo "⬆️  PATCH bump: $CURRENT_VERSION → $NEW_VERSION"
+          elif [ "$BUMP_TYPE" = "auto" ]; then
+            # Auto-detect based on commit messages since last tag
+            COMMITS_SINCE_TAG=$(git log ${LATEST_TAG}..HEAD --oneline --pretty=format:"%s" 2>/dev/null || echo "")
+            
+            if echo "$COMMITS_SINCE_TAG" | grep -qE "^feat!:|BREAKING CHANGE:"; then
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
+              NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+              echo "🔍 Auto-detected MAJOR bump (breaking changes): $CURRENT_VERSION → $NEW_VERSION"
+            elif echo "$COMMITS_SINCE_TAG" | grep -qE "^feat:"; then
+              MINOR=$((MINOR + 1))
+              PATCH=0
+              NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+              echo "🔍 Auto-detected MINOR bump (new features): $CURRENT_VERSION → $NEW_VERSION"
+            elif echo "$COMMITS_SINCE_TAG" | grep -qE "^fix:|^perf:|^refactor:"; then
+              PATCH=$((PATCH + 1))
+              NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+              echo "🔍 Auto-detected PATCH bump (fixes/improvements): $CURRENT_VERSION → $NEW_VERSION"
+            else
+              NEW_VERSION="$CURRENT_VERSION"
+              echo "ℹ️  No version-worthy commits found, using current version: $NEW_VERSION"
+            fi
+          fi
+          
+          # Output version info
+          VERSION="$NEW_VERSION"
+          VERSION_MAJOR=$(echo $VERSION | cut -d. -f1)
+          VERSION_MINOR=$(echo $VERSION | cut -d. -f1-2)
+          
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "MAJOR=$VERSION_MAJOR" >> $GITHUB_OUTPUT
+          echo "MINOR=$VERSION_MINOR" >> $GITHUB_OUTPUT
+          
+          echo ""
+          echo "📦 Building version: $VERSION"
+          echo "🏷️  Tags: $VERSION, $VERSION_MINOR, $VERSION_MAJOR, latest"
       
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -135,6 +211,33 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
       
+      - name: Update version files and create tag
+        if: ${{ !inputs.dry_run && inputs.version_bump != 'none' }}
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          
+          echo "📝 Updating version files..."
+          
+          # Update backend pyproject.toml
+          sed -i.bak "s/version = \".*\"/version = \"$VERSION\"/" apps/web/backend/pyproject.toml
+          rm -f apps/web/backend/pyproject.toml.bak
+          
+          # Update frontend package.json
+          sed -i.bak "s/\"version\": \".*\"/\"version\": \"$VERSION\"/" apps/web/frontend/package.json
+          rm -f apps/web/frontend/package.json.bak
+          
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Commit and tag
+          git add apps/web/backend/pyproject.toml apps/web/frontend/package.json
+          git commit -m "chore(release): ${VERSION} [skip ci]" || echo "No changes to commit"
+          git tag -a "v${VERSION}" -m "Release v${VERSION}"
+          git push origin main --tags
+          
+          echo "✅ Version updated to $VERSION and tagged"
+      
       - name: Summary
         if: ${{ !inputs.dry_run }}
         run: |
@@ -169,6 +272,11 @@ jobs:
           echo "✅ Multi-platform build **${{ steps.version.outputs.VERSION }}** successful!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "⚠️ **Dry run mode**: Images were built but not pushed to Docker Hub" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **No version bump**: Version files and tags were not updated" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 Would have released:" >> $GITHUB_STEP_SUMMARY
+          echo "- Version: **${{ steps.version.outputs.VERSION }}**" >> $GITHUB_STEP_SUMMARY
+          echo "- Tags: \`${{ steps.version.outputs.VERSION }}\`, \`${{ steps.version.outputs.MINOR }}\`, \`${{ steps.version.outputs.MAJOR }}\`, \`latest\`" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📦 Validated for platforms:" >> $GITHUB_STEP_SUMMARY
           echo "- linux/amd64 (Intel/AMD CPUs)" >> $GITHUB_STEP_SUMMARY
