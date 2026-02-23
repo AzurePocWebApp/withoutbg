@@ -15,15 +15,10 @@ COPY . .
 WORKDIR /app/apps/web/backend
 
 RUN poetry config virtualenvs.create false
-
-# 👇 THIS IS THE FIX
 RUN poetry install --no-interaction --no-ansi --no-root
 
-# Remove conflicting PyPI package if installed
-RUN pip uninstall -y withoutbg || true
-
-# Install local project properly
-RUN pip install -e /app
+# 👇 Important: expose root so "withoutbg" module is found
+ENV PYTHONPATH=/app
 
 EXPOSE 8000
 
