@@ -144,22 +144,23 @@ async def remove_background_document_endpoint(
     file: UploadFile = File(...),
     format: str = Form("png"),
     quality: int = Form(95),
-    block_size: int = Form(15),
-    c: float = Form(10.0),
+    ink_threshold: float = Form(25.0),
+    bg_radius: int = Form(30),
 ):
     """
-    Remove background from document/writing images using adaptive thresholding.
+    Remove background from document/writing images using morphological background estimation.
 
-    Optimized for handwritten notes, typed text, and drawings on paper.
-    Handles lined paper, uneven lighting, and varying paper colors without
-    using AI models.
+    Optimized for handwritten notes, typed text, and drawings on any paper type.
+    Handles lined/grid paper, uneven lighting, and varying paper colors without
+    using AI models. Faint lines are removed because they sit much closer to the
+    paper brightness than actual ink.
 
     Args:
         file: Image file to process
         format: Output format (png, jpg, webp)
         quality: Quality for JPEG/WebP output (1-100)
-        block_size: Local neighborhood size (odd number, default 15)
-        c: Threshold constant (higher = remove more faint marks, default 10)
+        ink_threshold: Gray-level gap between background and ink (default 25)
+        bg_radius: Background estimation radius in pixels (default 30)
 
     Returns:
         Processed image with background removed
@@ -173,8 +174,8 @@ async def remove_background_document_endpoint(
 
         result = remove_background_document(
             input_image,
-            block_size=block_size,
-            c=c,
+            ink_threshold=ink_threshold,
+            bg_radius=bg_radius,
         )
 
         output_buffer = io.BytesIO()

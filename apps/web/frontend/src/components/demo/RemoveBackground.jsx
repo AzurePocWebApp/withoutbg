@@ -38,8 +38,8 @@ export const RemoveBackground = () => {
     const [error, setError] = useState(null)
     const [queueRunning, setQueueRunning] = useState(false)
     const [starCount, setStarCount] = useState(null)
-    const [docBlockSize, setDocBlockSize] = useState(15)
-    const [docC, setDocC] = useState(10)
+    const [docInkThreshold, setDocInkThreshold] = useState(25)
+    const [docBgRadius, setDocBgRadius] = useState(30)
 
     const uploadsRef = useRef(uploads)
     useEffect(() => {
@@ -192,8 +192,8 @@ export const RemoveBackground = () => {
                     if (processingType === 'document') {
                         blob = await removeBackgroundDocument(current.file, {
                             format: 'png',
-                            blockSize: docBlockSize,
-                            c: docC,
+                            inkThreshold: docInkThreshold,
+                            bgRadius: docBgRadius,
                         })
                     } else {
                         blob = await removeBackground(current.file, {
@@ -217,7 +217,7 @@ export const RemoveBackground = () => {
         } finally {
             setQueueRunning(false)
         }
-    }, [apiKey, docBlockSize, docC, processingType, queueRunning, updateUpload])
+    }, [apiKey, docInkThreshold, docBgRadius, processingType, queueRunning, updateUpload])
 
     useEffect(() => {
         if (uploads.length === 0) {
@@ -311,36 +311,36 @@ export const RemoveBackground = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    Block Size <span className="opacity-60">(default 15 — increase for bold/thick text)</span>
+                                    Ink Sensitivity <span className="opacity-60">(default 25 — lower picks up lighter ink)</span>
                                 </label>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="range"
                                         min={5}
-                                        max={51}
-                                        step={2}
-                                        value={docBlockSize}
-                                        onChange={(e) => setDocBlockSize(Number(e.target.value))}
+                                        max={80}
+                                        step={1}
+                                        value={docInkThreshold}
+                                        onChange={(e) => setDocInkThreshold(Number(e.target.value))}
                                         className="flex-1 accent-blue-600"
                                     />
-                                    <span className="text-sm font-mono w-8 text-gray-700 dark:text-gray-300">{docBlockSize}</span>
+                                    <span className="text-sm font-mono w-8 text-gray-700 dark:text-gray-300">{docInkThreshold}</span>
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                                    Sensitivity <span className="opacity-60">(default 10 — higher removes faint marks)</span>
+                                    Background Radius <span className="opacity-60">(default 30 — increase for very wide strokes)</span>
                                 </label>
                                 <div className="flex items-center gap-3">
                                     <input
                                         type="range"
-                                        min={1}
-                                        max={30}
-                                        step={1}
-                                        value={docC}
-                                        onChange={(e) => setDocC(Number(e.target.value))}
+                                        min={10}
+                                        max={80}
+                                        step={5}
+                                        value={docBgRadius}
+                                        onChange={(e) => setDocBgRadius(Number(e.target.value))}
                                         className="flex-1 accent-blue-600"
                                     />
-                                    <span className="text-sm font-mono w-8 text-gray-700 dark:text-gray-300">{docC}</span>
+                                    <span className="text-sm font-mono w-8 text-gray-700 dark:text-gray-300">{docBgRadius}</span>
                                 </div>
                             </div>
                         </div>

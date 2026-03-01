@@ -31,8 +31,8 @@ export const removeBackgroundDocument = async (file, options = {}) => {
   formData.append('file', file);
   formData.append('format', options.format || 'png');
   formData.append('quality', options.quality || 95);
-  formData.append('block_size', options.blockSize || 15);
-  formData.append('c', options.c !== undefined ? options.c : 10.0);
+  formData.append('ink_threshold', options.inkThreshold !== undefined ? options.inkThreshold : 25.0);
+  formData.append('bg_radius', options.bgRadius !== undefined ? options.bgRadius : 30);
 
   const response = await api.post('/remove-background-document', formData, {
     responseType: 'blob',
