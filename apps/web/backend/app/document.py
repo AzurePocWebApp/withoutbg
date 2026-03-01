@@ -1,16 +1,15 @@
-"""Document/writing background removal using top-hat background estimation."""
+"""Document/writing background removal using morphological background estimation."""
 
 import numpy as np
 from PIL import Image
 
 
 def _box_min_filter(img: np.ndarray, radius: int) -> np.ndarray:
-    """Approximate morphological erosion via sliding-window minimum using 1D decomposition."""
+    """Sliding-window minimum (morphological erosion approximation) via 1D decomposition."""
     size = 2 * radius + 1
     h, w = img.shape
 
     padded = np.pad(img.astype(np.float32), radius, mode='reflect')
-
     cummin_h = np.minimum.accumulate(padded, axis=0)
     out = np.empty((h, w), dtype=np.float32)
     for i in range(h):
@@ -26,12 +25,11 @@ def _box_min_filter(img: np.ndarray, radius: int) -> np.ndarray:
 
 
 def _box_max_filter(img: np.ndarray, radius: int) -> np.ndarray:
-    """Approximate morphological dilation via sliding-window maximum using 1D decomposition."""
+    """Sliding-window maximum (morphological dilation approximation) via 1D decomposition."""
     size = 2 * radius + 1
     h, w = img.shape
 
     padded = np.pad(img.astype(np.float32), radius, mode='reflect')
-
     cummax_h = np.maximum.accumulate(padded, axis=0)
     out = np.empty((h, w), dtype=np.float32)
     for i in range(h):
@@ -48,40 +46,16 @@ def _box_max_filter(img: np.ndarray, radius: int) -> np.ndarray:
 
 def _estimate_background(gray: np.ndarray, radius: int) -> np.ndarray:
     """
-    Estimate the paper background brightness at each pixel using morphological closing.
-
-    Closing = dilation then erosion. On a document, this fills in the dark ink
-    strokes and leaves only the slowly-varying paper brightness — including any
-    shadows, colored paper, or faint grid lines.
+    Estimate paper background brightness via morphological closing (dilation then erosion).
+    This fills in dark ink strokes while preserving paper color, shadows, and any faint lines.
     """
     dilated = _box_max_filter(gray, radius)
     closed = _box_min_filter(dilated, radius)
     return closed
 
 
-def _integral_image(arr: np.ndarray) -> np.ndarray:
-    return np.cumsum(np.cumsum(arr.astype(np.float64), axis=0), axis=1)
-
-
-def _box_mean(integral: np.ndarray, h: int, w: int, half: int) -> np.ndarray:
-    block = 2 * half + 1
-    area = block * block
-    padded_i = np.pad(
-        np.cumsum(np.cumsum(np.ones((h, w), dtype=np.float64), axis=0), axis=1),
-        half, mode='reflect'
-    )
-    r = np.arange(h)
-    c = np.arange(w)
-    return (
-        integral[r[:, None] + block, c[None, :] + block]
-        - integral[r[:, None] + block, c[None, :]]
-        - integral[r[:, None], c[None, :] + block]
-        + integral[r[:, None], c[None, :]]
-    ) / area
-
-
 def _morphological_open(img: np.ndarray, radius: int) -> np.ndarray:
-    """Remove isolated noise pixels (opening = erosion then dilation)."""
+    """Morphological opening (erosion then dilation) to remove isolated noise pixels."""
     eroded = _box_min_filter(img, radius)
     dilated = _box_max_filter(eroded, radius)
     return dilated
@@ -96,45 +70,49 @@ def remove_background_document(
     """
     Remove background from document/writing images.
 
-    Uses morphological background estimation (closing) to determine the true
-    paper brightness at each pixel, then marks a pixel as ink if it is
-    significantly darker than the estimated background. This correctly handles:
+    Uses a two-condition ink detection strategy:
+      1. Relative condition: pixel must be at least `ink_threshold` gray levels
+         darker than the locally estimated paper background (handles colored paper,
+         uneven lighting, shadows).
+      2. Absolute condition: pixel must be darker than the auto-detected paper
+         brightness floor (eliminates faint grid/ruled lines that are close in
+         brightness to the paper regardless of local context).
 
-    - Lined / grid paper (lines are much closer to paper brightness than ink)
-    - Uneven lighting and shadows
-    - Colored or yellowed paper
-    - Both light and dark ink on any paper color
+    Both conditions must be satisfied for a pixel to be treated as ink.
+    Alpha is soft (smooth ink edges) within the ink region.
 
     Args:
-        input_image: Input PIL image.
-        ink_threshold: How many gray levels darker than the estimated background
-                       a pixel must be to count as ink. Lower = more sensitive
-                       (picks up lighter ink but may retain faint lines).
-                       Higher = less sensitive (clean removal of faint lines
-                       but may drop light pencil strokes). Default 25 works
-                       well for most pens on lined/grid paper.
-        bg_radius:    Radius (pixels) of the morphological closing used to
-                      estimate background. Should be larger than the widest
-                      stroke but smaller than large blank areas. Default 30.
-        denoise:      Remove isolated single-pixel noise after thresholding.
+        input_image:   Input PIL image.
+        ink_threshold: Minimum gray-level gap between background estimate and pixel
+                       brightness to count as ink. Default 25. Lower = picks up
+                       lighter ink; higher = cleaner line removal.
+        bg_radius:     Radius for background closing. Default 30. Increase if ink
+                       strokes are very wide.
+        denoise:       Remove isolated noise pixels after thresholding.
 
     Returns:
-        RGBA PIL image with background transparent and ink fully opaque.
+        RGBA PIL image — ink pixels fully opaque, background fully transparent.
     """
     img = input_image.convert("RGB")
     data = np.array(img, dtype=np.uint8)
-
     gray = np.dot(data[..., :3], [0.299, 0.587, 0.114]).astype(np.float32)
 
     background = _estimate_background(gray, bg_radius)
 
     diff = background - gray
-    alpha = np.clip(diff * (255.0 / max(ink_threshold, 1.0)), 0, 255).astype(np.uint8)
 
-    hard_alpha = (diff >= ink_threshold).astype(np.uint8) * 255
+    paper_brightness = float(np.percentile(background, 85))
+    abs_gate = paper_brightness - ink_threshold
+
+    ink_mask = (diff >= ink_threshold) & (gray <= abs_gate)
 
     if denoise:
-        hard_alpha = _morphological_open(hard_alpha, 1).astype(np.uint8)
+        ink_mask_u8 = ink_mask.astype(np.uint8) * 255
+        ink_mask_u8 = _morphological_open(ink_mask_u8, 1).astype(np.uint8)
+        ink_mask = ink_mask_u8 > 0
 
-    rgba = np.dstack([data, hard_alpha])
+    soft_alpha = np.clip(diff / max(ink_threshold, 1.0), 0.0, 1.0)
+    alpha = np.where(ink_mask, (soft_alpha * 255).astype(np.uint8), 0).astype(np.uint8)
+
+    rgba = np.dstack([data, alpha])
     return Image.fromarray(rgba, "RGBA")
