@@ -16,6 +16,7 @@ import uvicorn
 from withoutbg import WithoutBG, __version__
 from withoutbg.exceptions import WithoutBGError
 from withoutbg.api import ProAPI
+from app.document import remove_background_document
 
 app = FastAPI(
     title="withoutbg API",
@@ -134,6 +135,75 @@ async def remove_background_endpoint(
         
     except WithoutBGError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
+
+
+@app.post("/api/remove-background-document")
+async def remove_background_document_endpoint(
+    file: UploadFile = File(...),
+    format: str = Form("png"),
+    quality: int = Form(95),
+    block_size: int = Form(15),
+    c: float = Form(10.0),
+):
+    """
+    Remove background from document/writing images using adaptive thresholding.
+
+    Optimized for handwritten notes, typed text, and drawings on paper.
+    Handles lined paper, uneven lighting, and varying paper colors without
+    using AI models.
+
+    Args:
+        file: Image file to process
+        format: Output format (png, jpg, webp)
+        quality: Quality for JPEG/WebP output (1-100)
+        block_size: Local neighborhood size (odd number, default 15)
+        c: Threshold constant (higher = remove more faint marks, default 10)
+
+    Returns:
+        Processed image with background removed
+    """
+    try:
+        if not file.content_type or not file.content_type.startswith("image/"):
+            raise HTTPException(status_code=400, detail="File must be an image")
+
+        contents = await file.read()
+        input_image = Image.open(io.BytesIO(contents))
+
+        result = remove_background_document(
+            input_image,
+            block_size=block_size,
+            c=c,
+        )
+
+        output_buffer = io.BytesIO()
+
+        if format.lower() in ["jpg", "jpeg"]:
+            if result.mode == "RGBA":
+                rgb_image = Image.new("RGB", result.size, (255, 255, 255))
+                rgb_image.paste(result, mask=result.split()[3])
+                rgb_image.save(output_buffer, format="JPEG", quality=quality)
+            else:
+                result.save(output_buffer, format="JPEG", quality=quality)
+            media_type = "image/jpeg"
+        elif format.lower() == "webp":
+            result.save(output_buffer, format="WEBP", quality=quality)
+            media_type = "image/webp"
+        else:
+            result.save(output_buffer, format="PNG")
+            media_type = "image/png"
+
+        output_buffer.seek(0)
+
+        return Response(
+            content=output_buffer.getvalue(),
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f"inline; filename=withoutbg.{format}"
+            }
+        )
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Processing failed: {str(e)}")
 

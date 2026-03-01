@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { removeBackground } from '../../api'
+import { removeBackground, removeBackgroundDocument } from '../../api'
 import {
     ProcessingTypeTabs,
     ProcessingModeDescription,
@@ -22,7 +22,7 @@ const statusCopy = {
 }
 
 const statusBadgeClasses = {
-    pending: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-200',
+    pending: 'bg-slate-100 text-slate-700 dark:bg-slate-900/40 dark:text-slate-200',
     processing: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200',
     success: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200',
     error: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-200'
@@ -38,6 +38,8 @@ export const RemoveBackground = () => {
     const [error, setError] = useState(null)
     const [queueRunning, setQueueRunning] = useState(false)
     const [starCount, setStarCount] = useState(null)
+    const [docBlockSize, setDocBlockSize] = useState(15)
+    const [docC, setDocC] = useState(10)
 
     const uploadsRef = useRef(uploads)
     useEffect(() => {
@@ -186,10 +188,19 @@ export const RemoveBackground = () => {
                 updateUpload(nextIndex, (item) => ({ ...item, status: 'processing', error: null }))
 
                 try {
-                    const blob = await removeBackground(current.file, {
-                        format: 'png',
-                        apiKey: processingType === 'api' ? apiKey : undefined
-                    })
+                    let blob
+                    if (processingType === 'document') {
+                        blob = await removeBackgroundDocument(current.file, {
+                            format: 'png',
+                            blockSize: docBlockSize,
+                            c: docC,
+                        })
+                    } else {
+                        blob = await removeBackground(current.file, {
+                            format: 'png',
+                            apiKey: processingType === 'api' ? apiKey : undefined
+                        })
+                    }
 
                     const resultUrl = URL.createObjectURL(blob)
                     updateUpload(nextIndex, (item) => ({ ...item, status: 'success', resultUrl, error: null }))
@@ -206,7 +217,7 @@ export const RemoveBackground = () => {
         } finally {
             setQueueRunning(false)
         }
-    }, [apiKey, processingType, queueRunning, updateUpload])
+    }, [apiKey, docBlockSize, docC, processingType, queueRunning, updateUpload])
 
     useEffect(() => {
         if (uploads.length === 0) {
@@ -294,6 +305,48 @@ export const RemoveBackground = () => {
                     onApiKeyChange={setApiKey}
                 />
 
+                {processingType === 'document' && (
+                    <div className="mb-6 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Tuning (optional)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    Block Size <span className="opacity-60">(default 15 — increase for bold/thick text)</span>
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range"
+                                        min={5}
+                                        max={51}
+                                        step={2}
+                                        value={docBlockSize}
+                                        onChange={(e) => setDocBlockSize(Number(e.target.value))}
+                                        className="flex-1 accent-blue-600"
+                                    />
+                                    <span className="text-sm font-mono w-8 text-gray-700 dark:text-gray-300">{docBlockSize}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                                    Sensitivity <span className="opacity-60">(default 10 — higher removes faint marks)</span>
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="range"
+                                        min={1}
+                                        max={30}
+                                        step={1}
+                                        value={docC}
+                                        onChange={(e) => setDocC(Number(e.target.value))}
+                                        className="flex-1 accent-blue-600"
+                                    />
+                                    <span className="text-sm font-mono w-8 text-gray-700 dark:text-gray-300">{docC}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {uploads.length === 0 && (
                     <ImageUploadZone
                         getRootProps={getRootProps}
@@ -365,9 +418,9 @@ export const RemoveBackground = () => {
                                                                 className={`h-full w-full object-cover ${item.status === 'pending' ? 'opacity-40 grayscale' : ''}`}
                                                             />
                                                             {item.status === 'pending' && (
-                                                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-purple-950/40 dark:bg-purple-900/40 backdrop-blur-sm">
-                                                                    <Hourglass className="w-16 h-16 text-purple-300" />
-                                                                    <span className="mt-2 text-sm font-semibold text-purple-100">In queue</span>
+                                                                <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/40 dark:bg-slate-900/40 backdrop-blur-sm">
+                                                                    <Hourglass className="w-16 h-16 text-slate-300" />
+                                                                    <span className="mt-2 text-sm font-semibold text-slate-100">In queue</span>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -434,7 +487,7 @@ export const RemoveBackground = () => {
                         </div>
 
                         {allProcessed && successCount > 0 && (
-                            <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border-2 border-purple-200 dark:border-purple-700/50 rounded-xl p-6 shadow-sm mt-6">
+                            <div className="bg-gradient-to-r from-slate-50 to-blue-50 dark:from-slate-900/20 dark:to-blue-900/20 border-2 border-slate-200 dark:border-slate-700/50 rounded-xl p-6 shadow-sm mt-6">
                                 <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                                     <div className="text-center sm:text-left">
                                         <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-1">

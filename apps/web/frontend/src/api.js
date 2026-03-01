@@ -26,6 +26,21 @@ export const removeBackground = async (file, options = {}) => {
   return response.data;
 };
 
+export const removeBackgroundDocument = async (file, options = {}) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('format', options.format || 'png');
+  formData.append('quality', options.quality || 95);
+  formData.append('block_size', options.blockSize || 15);
+  formData.append('c', options.c !== undefined ? options.c : 10.0);
+
+  const response = await api.post('/remove-background-document', formData, {
+    responseType: 'blob',
+  });
+
+  return response.data;
+};
+
 export const healthCheck = async () => {
   const response = await api.get('/health');
   return response.data;
